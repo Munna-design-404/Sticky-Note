@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StickyNote Drop — Send a Little Note</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans (UI), Caveat (Handwriting), Lora (Editorial Serif) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Lora:ital,wght@0,500;0,600;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            hand: ['"Caveat"', 'cursive'],
+            serif: ['"Lora"', 'serif'],
+          },
+          colors: {
+            desk: '#FAF8F5',
+            ink: '#1E1B18',
+            muted: '#78716C',
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: #FAF8F5;
+      background-image: radial-gradient(#D6D1C9 1px, transparent 1px);
+      background-size: 22px 22px;
+      color: #1E1B18;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ==================== STICKY NOTE PAPER STYLES ==================== */
+    .sticky-card-base {
+      position: relative;
+      transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                  box-shadow 0.35s ease,
+                  background-color 0.3s ease,
+                  border-radius 0.3s ease;
+      word-break: break-word;
+    }
+
+    /* 1. Classic Sunny Post-it */
+    .style-sunny {
+      background: linear-gradient(155deg, #FEF9C3 0%, #FEF08A 58%, #FDE047 100%);
+      color: #3F3210;
+      border-radius: 4px 4px 26px 4px;
+      box-shadow:
+        0 14px 28px -8px rgba(161, 130, 10, 0.22),
+        0 4px 10px -2px rgba(0, 0, 0, 0.06),
+        inset 0 -16px 24px -14px rgba(202, 138, 4, 0.25);
+    }
+    .style-sunny::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, transparent 48%, rgba(202, 138, 4, 0.22) 52%, rgba(254, 249, 195, 0.85) 100%);
+      border-top-left-radius: 8px;
+      pointer-events: none;
+    }
+
+    /* 2. Cozy Blush Polaroid / Kraft Card */
+    .style-blush {
+      background: linear-gradient(180deg, #FFF5F5 0%, #FFE4E6 100%);
+      color: #4C1D24;
+      border: 1px solid #FECDD3;
+      border-radius: 14px;
+      box-shadow:
+        0 16px 32px -10px rgba(159, 18, 57, 0.14),
+        0 4px 10px rgba(0, 0, 0, 0.04);
+    }
+
+    /* 3. Mint Grid Memo */
+    .style-mint {
+      background-color: #D1FAE5;
+      background-image:
+        linear-gradient(to right, rgba(16, 185, 129, 0.14) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(16, 185, 129, 0.14) 1px, transparent 1px);
+      background-size: 20px 20px;
+      color: #064E3B;
+      border: 1px solid #A7F3D0;
+      border-radius: 8px;
+      box-shadow:
+        0 15px 30px -10px rgba(6, 78, 59, 0.16),
+        0 4px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    /* 4. Midnight Starlight Note */
+    .style-midnight {
+      background: radial-gradient(circle at top right, #293548 0%, #1E293B 60%, #0F172A 100%);
+      color: #FEF3C7;
+      border: 1px solid #334155;
+      border-radius: 18px;
+      box-shadow:
+        0 20px 38px -10px rgba(15, 23, 42, 0.42),
+        0 6px 14px rgba(15, 23, 42, 0.2);
+    }
+
+    /* 5. Lavender Cloud Sticker */
+    .style-lavender {
+      background: linear-gradient(145deg, #F5F3FF 0%, #EDE9FE 65%, #DDD6FE 100%);
+      color: #3B0764;
+      border: 2px dashed #C4B5FD;
+      border-radius: 30px;
+      box-shadow:
+        0 16px 30px -8px rgba(109, 40, 217, 0.16),
+        0 4px 10px rgba(0, 0, 0, 0.03);
+    }
+
+    /* ==================== TOP FASTENER ACCENTS ==================== */
+    /* Washi Tape */
+    .accent-tape {
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%) rotate(-2deg);
+      width: 96px;
+      height: 26px;
+      background: rgba(255, 255, 255, 0.58);
+      backdrop-filter: blur(2px);
+      border-left: 2px dotted rgba(0, 0, 0, 0.08);
+      border-right: 2px dotted rgba(0, 0, 0, 0.08);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+      z-index: 10;
+    }
+    .style-sunny .accent-tape {
+      background: rgba(253, 186, 116, 0.52);
+    }
+    .style-blush .accent-tape {
+      background: rgba(251, 113, 133, 0.34);
+    }
+    .style-midnight .accent-tape {
+      background: rgba(251, 191, 36, 0.32);
+    }
+
+    /* Push Pin */
+    .accent-pin {
+      position: absolute;
+      top: -11px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 35% 35%, #F87171, #DC2626 70%, #991B1B 100%);
+      box-shadow: 0 5px 8px rgba(0, 0, 0, 0.28), inset 0 2px 3px rgba(255, 255, 255, 0.5);
+      z-index: 10;
+    }
+    .accent-pin::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.25);
+      filter: blur(1px);
+    }
+
+    /* ==================== RECIPIENT ENVELOPE & REVEAL ANIMATIONS ==================== */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px) rotate(-1deg); }
+      50% { transform: translateY(-7px) rotate(1deg); }
+    }
+    .envelope-float {
+      animation: floatSlow 3.6s ease-in-out infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.45); }
+      50% { box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
+    }
+    .btn-pulse-ring {
+      animation: pulseGlow 2.2s infinite;
+    }
+
+    @keyframes notePopReveal {
+      0% {
+        opacity: 0;
+        transform: scale(0.72) translateY(36px) rotate(-8deg);
+      }
+      65% {
+        opacity: 1;
+        transform: scale(1.03) translateY(-4px) rotate(1.5deg);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0) var(--final-rotate, rotate(0deg));
+      }
+    }
+    .animate-note-reveal {
+      animation: notePopReveal 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Sparkle / Confetti Particle */
+    .sparkle-particle {
+      position: fixed;
+      pointer-events: none;
+      z-index: 60;
+      animation: particleFly var(--dur, 1.2s) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes particleFly {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(0.5) rotate(0deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--tx), var(--ty)) scale(1.25) rotate(var(--rot));
+      }
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+  <!-- ==================== TOP BAR (CREATOR & PREVIEW HEADER) ==================== -->
+  <header id="appHeader" class="w-full max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-2 flex items-center justify-between gap-3">
+    <a href="#" onclick="switchToCreatorMode(event)" class="flex items-center gap-2.5 group">
+      <div class="w-9 h-9 rounded-xl bg-amber-300 border border-amber-400/70 shadow-sm flex items-center justify-center text-lg group-hover:rotate-6 transition-transform">
+        🗒️
+      </div>
+      <div>
+        <span class="font-extrabold text-[17px] tracking-tight text-stone-900">StickyNote</span>
+        <span class="font-semibold text-[17px] text-amber-600">Drop</span>
+      </div>
+    </a>
+
+    <!-- Mode Switcher Pill (Visible when creator wants to test Receiver View) -->
+    <div id="headerControls" class="flex items-center gap-2">
+      <button
+        id="previewReceiverBtn"
+        onclick="togglePreviewReceiverMode()"
+        class="h-9 px-4 rounded-full bg-white hover:bg-stone-100 text-stone-700 border border-stone-200/90 shadow-xs text-[13px] font-semibold inline-flex items-center gap-2 transition-all active:scale-95"
+      >
+        <span id="previewBtnIcon">👁️</span>
+        <span id="previewBtnText">Preview Receiver View</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== 1. CREATOR STUDIO VIEW ==================== -->
+  <main id="creatorView" class="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
+
+    <!-- LEFT COLUMN: EDITOR CONTROLS (7 cols) -->
+    <section class="lg:col-span-7 bg-white/90 backdrop-blur-xs rounded-[26px] p-5 sm:p-7 border border-stone-200/80 shadow-sm space-y-6">
+      <div>
+        <h1 class="text-[22px] sm:text-[25px] font-extrabold tracking-tight text-stone-900">Write a little sticky note</h1>
+        <p class="text-[13.5px] text-stone-500 mt-1">Type your message, pick a paper vibe, and generate a secret link with an <strong class="text-stone-700">Open</strong> button.</p>
+      </div>
+
+      <!-- Message Textarea -->
+      <div>
+        <div class="flex items-center justify-between mb-1.5">
+          <label for="noteTextInput" class="text-[12.5px] font-bold uppercase tracking-wider text-stone-500">Your Note</label>
+          <span id="charCounter" class="text-[12px] font-medium text-stone-400">0 / 240</span>
+        </div>
+        <textarea
+          id="noteTextInput"
+          rows="4"
+          maxlength="240"
+          oninput="updateLivePreview()"
+          placeholder="Hey! Just wanted to remind you that you're doing amazing today. Coffee is on me later! ☕✨"
+          class="w-full p-4 rounded-2xl bg-[#FAF8F5] border border-stone-200 text-stone-900 placeholder-stone-400 text-[15px] leading-relaxed focus:outline-none focus:border-amber-400 focus:bg-white transition-all resize-none"
+        ></textarea>
+      </div>
+
+      <!-- Sender Signature & Sticker Badge Row -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="senderNameInput" class="block text-[12.5px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">From (Optional)</label>
+          <input
+            id="senderNameInput"
+            type="text"
+            maxlength="32"
+            oninput="updateLivePreview()"
+            placeholder="e.g. Munna"
+            class="w-full h-11 px-4 rounded-xl bg-[#FAF8F5] border border-stone-200 text-[14px] text-stone-900 placeholder-stone-400 focus:outline-none focus:border-amber-400 focus:bg-white transition-all"
+          />
+        </div>
+
+        <div>
+          <label class="block text-[12.5px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Sticker Badge</label>
+          <div id="emojiPickerGroup" class="flex items-center gap-1.5 flex-wrap">
+            <button type="button" data-emoji="✨" onclick="selectEmoji(this)" class="emoji-btn active w-10 h-10 rounded-xl bg-amber-100 border-2 border-amber-400 text-lg flex items-center justify-center transition-transform hover:scale-105">✨</button>
+            <button type="button" data-emoji="💛" onclick="selectEmoji(this)" class="emoji-btn w-10 h-10 rounded-xl bg-[#FAF8F5] border border-stone-200 text-lg flex items-center justify-center transition-transform hover:scale-105">💛</button>
+            <button type="button" data-emoji="☕" onclick="selectEmoji(this)" class="emoji-btn w-10 h-10 rounded-xl bg-[#FAF8F5] border border-stone-200 text-lg flex items-center justify-center transition-transform hover:scale-105">☕</button>
+            <button type="button" data-emoji="🌸" onclick="selectEmoji(this)" class="emoji-btn w-10 h-10 rounded-xl bg-[#FAF8F5] border border-stone-200 text-lg flex items-center justify-center transition-transform hover:scale-105">🌸</button>
+            <button type="button" data-emoji="🌙" onclick="selectEmoji(this)" class="emoji-btn w-10 h-10 rounded-xl bg-[#FAF8F5] border border-stone-200 text-lg flex items-center justify-center transition-transform hover:scale-105">🌙</button>
+            <button type="button" data-emoji="" onclick="selectEmoji(this)" title="No Sticker" class="emoji-btn w-10 h-10 rounded-xl bg-[#FAF8F5] border border-stone-200 text-xs font-bold text-stone-400 flex items-center justify-center transition-transform hover:scale-105">None</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sticky Note Format / Style Templates -->
+      <div>
+        <label class="block text-[12.5px] font-bold uppercase tracking-wider text-stone-500 mb-2.5">Choose Sticky Note Format</label>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5" id="styleSelectorGrid">
+          <!-- 1. Classic Sunny -->
+          <button type="button" data-style="sunny" onclick="selectNoteStyle('sunny')" class="style-choice active group p-2.5 rounded-2xl border-2 border-amber-500 bg-amber-50/70 text-left transition-all">
+            <div class="w-full h-10 rounded-lg bg-[#FEF08A] border border-amber-300/80 mb-2 shadow-2xs flex items-center justify-center font-hand text-amber-900 font-bold text-base">Abc</div>
+            <div class="text-[12px] font-bold text-stone-800 leading-tight">Classic Sunny</div>
+            <div class="text-[10.5px] text-stone-500">Post-it yellow</div>
+          </button>
+
+          <!-- 2. Cozy Blush -->
+          <button type="button" data-style="blush" onclick="selectNoteStyle('blush')" class="style-choice group p-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 bg-white text-left transition-all">
+            <div class="w-full h-10 rounded-lg bg-[#FFE4E6] border border-rose-200 mb-2 shadow-2xs flex items-center justify-center font-serif text-rose-900 font-semibold text-xs">Abc</div>
+            <div class="text-[12px] font-bold text-stone-800 leading-tight">Cozy Blush</div>
+            <div class="text-[10.5px] text-stone-500">Rose card</div>
+          </button>
+
+          <!-- 3. Mint Grid -->
+          <button type="button" data-style="mint" onclick="selectNoteStyle('mint')" class="style-choice group p-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 bg-white text-left transition-all">
+            <div class="w-full h-10 rounded-lg bg-[#D1FAE5] border border-emerald-200 mb-2 shadow-2xs flex items-center justify-center font-hand text-emerald-900 font-bold text-base">Abc</div>
+            <div class="text-[12px] font-bold text-stone-800 leading-tight">Mint Grid</div>
+            <div class="text-[10.5px] text-stone-500">Grid memo</div>
+          </button>
+
+          <!-- 4. Midnight Starlight -->
+          <button type="button" data-style="midnight" onclick="selectNoteStyle('midnight')" class="style-choice group p-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 bg-white text-left transition-all">
+            <div class="w-full h-10 rounded-lg bg-[#1E293B] border border-slate-700 mb-2 shadow-2xs flex items-center justify-center font-serif text-amber-200 font-semibold text-xs">Abc</div>
+            <div class="text-[12px] font-bold text-stone-800 leading-tight">Midnight</div>
+            <div class="text-[10.5px] text-stone-500">Starlight gold</div>
+          </button>
+
+          <!-- 5. Lavender Cloud -->
+          <button type="button" data-style="lavender" onclick="selectNoteStyle('lavender')" class="style-choice group p-2.5 rounded-2xl border border-stone-200 hover:border-stone-300 bg-white text-left transition-all">
+            <div class="w-full h-10 rounded-xl bg-[#EDE9FE] border border-dashed border-violet-300 mb-2 shadow-2xs flex items-center justify-center font-hand text-violet-900 font-bold text-base">Abc</div>
+            <div class="text-[12px] font-bold text-stone-800 leading-tight">Lavender</div>
+            <div class="text-[10.5px] text-stone-500">Cloud sticker</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tactile Details: Fastener & Tilt -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 border-t border-stone-100">
+        <!-- Fastener Choice -->
+        <div>
+          <label class="block text-[12px] font-bold uppercase tracking-wider text-stone-500 mb-2">Top Fastener</label>
+          <div class="inline-flex p-1 rounded-xl bg-[#FAF8F5] border border-stone-200 gap-1">
+            <button type="button" data-fastener="tape" onclick="selectFastener('tape')" class="fastener-btn active px-3 py-1.5 rounded-lg bg-white shadow-2xs text-[12.5px] font-semibold text-stone-800 transition-all">🩹 Washi Tape</button>
+            <button type="button" data-fastener="pin" onclick="selectFastener('pin')" class="fastener-btn px-3 py-1.5 rounded-lg text-[12.5px] font-semibold text-stone-500 hover:text-stone-800 transition-all">📍 Red Pin</button>
+            <button type="button" data-fastener="none" onclick="selectFastener('none')" class="fastener-btn px-3 py-1.5 rounded-lg text-[12.5px] font-semibold text-stone-500 hover:text-stone-800 transition-all">Clean</button>
+          </div>
+        </div>
+
+        <!-- Paper Tilt -->
+        <div>
+          <label class="block text-[12px] font-bold uppercase tracking-wider text-stone-500 mb-2">Paper Tilt</label>
+          <div class="inline-flex p-1 rounded-xl bg-[#FAF8F5] border border-stone-200 gap-1">
+            <button type="button" data-tilt="-2.5" onclick="selectTilt('-2.5')" class="tilt-btn active px-3 py-1.5 rounded-lg bg-white shadow-2xs text-[12.5px] font-semibold text-stone-800 transition-all">Left ↺</button>
+            <button type="button" data-tilt="0" onclick="selectTilt('0')" class="tilt-btn px-3 py-1.5 rounded-lg text-[12.5px] font-semibold text-stone-500 hover:text-stone-800 transition-all">Straight</button>
+            <button type="button" data-tilt="2.5" onclick="selectTilt('2.5')" class="tilt-btn px-3 py-1.5 rounded-lg text-[12.5px] font-semibold text-stone-500 hover:text-stone-800 transition-all">Right ↻</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Generate Share Link CTA -->
+      <div class="pt-2 space-y-3">
+        <button
+          type="button"
+          onclick="generateShareLink()"
+          class="w-full h-12 rounded-2xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-[15px] shadow-md hover:shadow-lg flex items-center justify-center gap-2.5 transition-all active:scale-[0.99]"
+        >
+          <span>🔗</span>
+          <span>Generate Share Link</span>
+        </button>
+
+        <!-- Share Link Output Box (Revealed when generated) -->
+        <div id="shareResultBox" class="hidden p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/90 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[12px] font-bold text-amber-900 flex items-center gap-1.5">
+              <span>✨</span> Your shareable note link is ready!
+            </span>
+            <button type="button" onclick="openReceiverPreviewFromLink()" class="text-[12px] font-bold text-amber-800 underline hover:text-amber-950">
+              Test "Open" Screen →
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input
+              id="shareUrlOutput"
+              type="text"
+              readonly
+              class="flex-1 h-10 px-3 rounded-xl bg-white border border-amber-200 text-[12.5px] text-stone-600 font-mono focus:outline-none"
+            />
+            <button
+              type="button"
+              id="copyLinkBtn"
+              onclick="copyShareLink()"
+              class="h-10 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-[13px] shrink-0 transition-colors flex items-center gap-1.5"
+            >
+              <span id="copyBtnLabel">Copy Link</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: LIVE STICKY NOTE STAGE (5 cols) -->
+    <section class="lg:col-span-5 flex flex-col items-center justify-center lg:sticky lg:top-8">
+      <div class="w-full flex items-center justify-between mb-3 px-1">
+        <span class="text-[12px] font-bold uppercase tracking-wider text-stone-400">Live Preview</span>
+        <span id="liveStyleBadge" class="text-[12px] font-semibold text-stone-600 bg-white px-3 py-1 rounded-full border border-stone-200/80 shadow-2xs">
+          Classic Sunny Post-it
+        </span>
+      </div>
+
+      <!-- Desk Preview Stage -->
+      <div class="w-full min-h-[390px] sm:min-h-[430px] rounded-[28px] bg-stone-200/45 border border-stone-200/80 p-6 sm:p-10 flex items-center justify-center relative overflow-hidden">
+        <!-- Subtle ambient desk corner label -->
+        <span class="absolute bottom-3.5 right-4 text-[11px] font-medium text-stone-400 select-none">Recipient sees this after clicking Open</span>
+
+        <!-- Live Sticky Note Card Container -->
+        <div id="livePreviewCardMount" class="w-full max-w-[320px]"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== 2. RECIPIENT "OPEN" VIEW (SHARED LINK MODE) ==================== -->
+  <main id="recipientView" class="hidden flex-1 w-full max-w-2xl mx-auto px-4 py-10 flex flex-col items-center justify-center text-center">
+
+    <!-- STAGE A: SEALED NOTE / ENVELOPE WITH "OPEN" BUTTON -->
+    <div id="sealedEnvelopeStage" class="w-full max-w-md flex flex-col items-center">
+      <div class="envelope-float relative w-full max-w-[330px] bg-white rounded-[28px] p-7 sm:p-8 border border-stone-200/90 shadow-xl mb-8">
+        <!-- Decorative Top Flap Visual -->
+        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center text-3xl shadow-xs">
+          💌
+        </div>
+
+        <p class="text-[12px] font-bold uppercase tracking-[0.14em] text-amber-600 mb-1.5">Private Sticky Note</p>
+        <h2 id="envelopeHeadline" class="text-[22px] sm:text-[24px] font-extrabold text-stone-900 leading-snug">
+          You received a little note
+        </h2>
+        <p id="envelopeSubtext" class="text-[13.5px] text-stone-500 mt-1.5">
+          Tap the button below to unfold and read it.
+        </p>
+
+        <!-- Wax Seal / Tactile Open Button -->
+        <div class="mt-7">
+          <button
+            type="button"
+            onclick="revealSharedNote()"
+            class="btn-pulse-ring w-full sm:w-auto min-w-[180px] h-13 py-3.5 px-9 rounded-full bg-amber-400 hover:bg-amber-300 text-stone-950 font-extrabold text-[16px] tracking-wide shadow-md hover:shadow-lg inline-flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer"
+          >
+            <span>Open</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/>
+              <path d="m12 5 7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAGE B: REVEALED STICKY NOTE -->
+    <div id="revealedNoteStage" class="hidden w-full max-w-md flex flex-col items-center">
+      <div id="recipientNoteMount" class="w-full max-w-[340px] text-left"></div>
+
+      <!-- Unobtrusive Actions Below Revealed Note -->
+      <div class="mt-10 flex flex-col sm:flex-row items-center gap-3">
+        <button
+          type="button"
+          onclick="switchToCreatorMode(event)"
+          class="h-10 px-5 rounded-full bg-white hover:bg-stone-100 text-stone-700 border border-stone-200/90 shadow-2xs text-[13px] font-semibold inline-flex items-center gap-2 transition-all"
+        >
+          <span>✍️</span>
+          <span>Create your own note</span>
+        </button>
+
+        <button
+          type="button"
+          id="backToEditorFromPreviewBtn"
+          onclick="togglePreviewReceiverMode()"
+          class="hidden h-10 px-5 rounded-full bg-stone-900 hover:bg-stone-800 text-white text-[13px] font-semibold inline-flex items-center gap-2 transition-all"
+        >
+          <span>← Back to Editor</span>
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-stone-900 text-white text-[13px] font-semibold px-4 py-2.5 rounded-full shadow-lg opacity-0 translate-y-6 pointer-events-none transition-all duration-300">
+    Link copied to clipboard!
+  </div>
+
+  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+  <script>
+    // 1. STATE & METADATA
+    const STYLE_META = {
+      sunny: {
+        name: 'Classic Sunny Post-it',
+        cardClass: 'style-sunny',
+        fontClass: 'font-hand text-[26px] sm:text-[28px] leading-[1.32]',
+        sigClass: 'font-hand text-[22px] text-amber-900/80',
+        decorHtml: ''
+      },
+      blush: {
+        name: 'Cozy Blush Card',
+        cardClass: 'style-blush',
+        fontClass: 'font-serif text-[18px] sm:text-[19px] leading-[1.6]',
+        sigClass: 'font-serif italic text-[14.5px] text-rose-800/80',
+        decorHtml: '<div class="text-[11px] uppercase tracking-[0.18em] text-rose-400 font-sans font-bold mb-2">A Little Note</div>'
+      },
+      mint: {
+        name: 'Mint Grid Memo',
+        cardClass: 'style-mint',
+        fontClass: 'font-hand text-[25px] sm:text-[27px] leading-[1.35]',
+        sigClass: 'font-hand text-[21px] text-emerald-900/80',
+        decorHtml: ''
+      },
+      midnight: {
+        name: 'Midnight Starlight Note',
+        cardClass: 'style-midnight',
+        fontClass: 'font-serif text-[18px] sm:text-[19px] leading-[1.62]',
+        sigClass: 'font-serif italic text-[14.5px] text-amber-300/85',
+        decorHtml: '<div class="flex items-center justify-between text-amber-300/70 text-xs mb-2.5"><span>✦ ✧ ✦</span><span class="font-sans text-[10px] uppercase tracking-widest">Starlight</span></div>'
+      },
+      lavender: {
+        name: 'Lavender Cloud Sticker',
+        cardClass: 'style-lavender',
+        fontClass: 'font-hand text-[26px] sm:text-[28px] leading-[1.32]',
+        sigClass: 'font-hand text-[22px] text-violet-900/80',
+        decorHtml: '<div class="text-violet-400 text-xs tracking-widest mb-1.5">☁️ ･ﾟ✧</div>'
+      }
+    };
+
+    const noteState = {
+      text: '',
+      sender: '',
+      emoji: '✨',
+      style: 'sunny',
+      fastener: 'tape',
+      tilt: '-2.5'
+    };
+
+    let isPreviewingReceiver = false;
+
+    // 2. HTML ESCAPING & STICKY NOTE RENDERER
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function buildStickyNoteHtml(data, isRevealedMode = false) {
+      const meta = STYLE_META[data.style] || STYLE_META.sunny;
+      const displayMessage = data.text && data.text.trim().length > 0
+        ? escapeHtml(data.text.trim()).replace(/\n/g, '<br/>')
+        : "Hey! Just wanted to remind you that you're doing amazing today. Coffee is on me later! ☕✨";
+
+      const displaySender = data.sender && data.sender.trim().length > 0
+        ? `— ${escapeHtml(data.sender.trim())}`
+        : '';
+
+      const fastenerHtml =
+        data.fastener === 'tape'
+          ? '<div class="accent-tape"></div>'
+          : data.fastener === 'pin'
+          ? '<div class="accent-pin"></div>'
+          : '';
+
+      const emojiHtml = data.emoji
+        ? `<div class="inline-flex items-center justify-center text-2xl sm:text-[28px] mb-2 select-none">${escapeHtml(data.emoji)}</div>`
+        : '';
+
+      const tiltDeg = `${data.tilt || 0}deg`;
+      const animationClass = isRevealedMode ? 'animate-note-reveal' : '';
+
+      return `
+        <div
+          class="sticky-card-base ${meta.cardClass} ${animationClass} p-7 sm:p-8 min-h-[260px] flex flex-col justify-between select-text"
+          style="transform: rotate(${tiltDeg}); --final-rotate: rotate(${tiltDeg});"
+        >
+          ${fastenerHtml}
+          <div>
+            ${meta.decorHtml}
+            ${emojiHtml}
+            <div class="${meta.fontClass} mt-1">
+              ${displayMessage}
+            </div>
+          </div>
+
+          ${
+            displaySender
+              ? `<div class="pt-5 mt-4 border-t border-current/10 text-right ${meta.sigClass}">${displaySender}</div>`
+              : '<div class="pt-3"></div>'
+          }
+        </div>
+      `;
+    }
+
+    // 3. CREATOR MODE CONTROLS
+    function updateLivePreview() {
+      const textInput = document.getElementById('noteTextInput');
+      const senderInput = document.getElementById('senderNameInput');
+      noteState.text = textInput.value;
+      noteState.sender = senderInput.value;
+
+      document.getElementById('charCounter').textContent = `${noteState.text.length} / 240`;
+
+      const mount = document.getElementById('livePreviewCardMount');
+      mount.innerHTML = buildStickyNoteHtml(noteState, false);
+      document.getElementById('liveStyleBadge').textContent = STYLE_META[noteState.style].name;
+    }
+
+    function selectNoteStyle(styleKey) {
+      noteState.style = styleKey;
+      document.querySelectorAll('.style-choice').forEach((btn) => {
+        const isMatch = btn.getAttribute('data-style') === styleKey;
+        btn.classList.toggle('active', isMatch);
+        btn.classList.toggle('border-2', isMatch);
+        btn.classList.toggle('border-amber-500', isMatch);
+        btn.classList.toggle('bg-amber-50/70', isMatch);
+        btn.classList.toggle('border-stone-200', !isMatch);
+        btn.classList.toggle('bg-white', !isMatch);
+      });
+      updateLivePreview();
+    }
+
+    function selectEmoji(btn) {
+      noteState.emoji = btn.getAttribute('data-emoji');
+      document.querySelectorAll('.emoji-btn').forEach((el) => {
+        el.classList.remove('active', 'bg-amber-100', 'border-2', 'border-amber-400');
+        el.classList.add('bg-[#FAF8F5]', 'border', 'border-stone-200');
+      });
+      btn.classList.add('active', 'bg-amber-100', 'border-2', 'border-amber-400');
+      btn.classList.remove('bg-[#FAF8F5]', 'border', 'border-stone-200');
+      updateLivePreview();
+    }
+
+    function selectFastener(fastenerType) {
+      noteState.fastener = fastenerType;
+      document.querySelectorAll('.fastener-btn').forEach((btn) => {
+        const isMatch = btn.getAttribute('data-fastener') === fastenerType;
+        btn.classList.toggle('bg-white', isMatch);
+        btn.classList.toggle('shadow-2xs', isMatch);
+        btn.classList.toggle('text-stone-800', isMatch);
+        btn.classList.toggle('text-stone-500', !isMatch);
+      });
+      updateLivePreview();
+    }
+
+    function selectTilt(tiltVal) {
+      noteState.tilt = tiltVal;
+      document.querySelectorAll('.tilt-btn').forEach((btn) => {
+        const isMatch = btn.getAttribute('data-tilt') === tiltVal;
+        btn.classList.toggle('bg-white', isMatch);
+        btn.classList.toggle('shadow-2xs', isMatch);
+        btn.classList.toggle('text-stone-800', isMatch);
+        btn.classList.toggle('text-stone-500', !isMatch);
+      });
+      updateLivePreview();
+    }
+
+    // 4. UTF-8 SAFE BASE64 URL HASH ENCODING / DECODING
+    function encodeNotePayload(obj) {
+      const compact = {
+        t: obj.text && obj.text.trim() ? obj.text.trim() : "Hey! Just wanted to remind you that you're doing amazing today. Coffee is on me later! ☕✨",
+        s: obj.sender ? obj.sender.trim() : '',
+        e: obj.emoji || '',
+        y: obj.style || 'sunny',
+        f: obj.fastener || 'tape',
+        r: obj.tilt || '-2.5'
+      };
+      const jsonStr = JSON.stringify(compact);
+      const utf8Bytes = new TextEncoder().encode(jsonStr);
+      let binary = '';
+      utf8Bytes.forEach((b) => {
+        binary += String.fromCharCode(b);
+      });
+      // URL-safe Base64
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function decodeNotePayload(encoded) {
+      try {
+        let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4) base64 += '=';
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        const jsonStr = new TextDecoder().decode(bytes);
+        const parsed = JSON.parse(jsonStr);
+        return {
+          text: parsed.t || '',
+          sender: parsed.s || '',
+          emoji: parsed.e !== undefined ? parsed.e : '✨',
+          style: STYLE_META[parsed.y] ? parsed.y : 'sunny',
+          fastener: parsed.f || 'tape',
+          tilt: parsed.r !== undefined ? parsed.r : '-2.5'
+        };
+      } catch (err) {
+        console.error('Failed to decode shared note:', err);
+        return null;
+      }
+    }
+
+    function generateShareLink() {
+      const encoded = encodeNotePayload(noteState);
+      const baseUrl = window.location.href.split('#')[0];
+      const fullShareUrl = `${baseUrl}#note=${encoded}`;
+
+      const resultBox = document.getElementById('shareResultBox');
+      const urlInput = document.getElementById('shareUrlOutput');
+      urlInput.value = fullShareUrl;
+      resultBox.classList.remove('hidden');
+
+      copyShareLink();
+    }
+
+    function copyShareLink() {
+      const urlInput = document.getElementById('shareUrlOutput');
+      if (!urlInput.value) return;
+
+      urlInput.select();
+      urlInput.setSelectionRange(0, 99999);
+      try {
+        document.execCommand('copy');
+      } catch (e) {
+        if (navigator.clipboard) navigator.clipboard.writeText(urlInput.value);
+      }
+
+      const label = document.getElementById('copyBtnLabel');
+      label.textContent = 'Link Copied!';
+      showToast('Shareable link copied! Send it to anyone.');
+      setTimeout(() => {
+        label.textContent = 'Copy Link';
+      }, 2200);
+    }
+
+    // 5. RECIPIENT VIEW & "OPEN" REVEAL EXPERIENCE
+    let activeSharedNoteData = null;
+
+    function enterRecipientMode(noteData, fromCreatorPreview = false) {
+      activeSharedNoteData = noteData;
+      isPreviewingReceiver = fromCreatorPreview;
+
+      document.getElementById('creatorView').classList.add('hidden');
+      document.getElementById('recipientView').classList.remove('hidden');
+
+      // Reset stages to sealed envelope first
+      document.getElementById('sealedEnvelopeStage').classList.remove('hidden');
+      document.getElementById('revealedNoteStage').classList.add('hidden');
+
+      // Personalize envelope text if sender name is present
+      const headline = document.getElementById('envelopeHeadline');
+      if (noteData.sender && noteData.sender.trim()) {
+        headline.textContent = `${noteData.sender.trim()} sent you a note`;
+      } else {
+        headline.textContent = 'You received a little note';
+      }
+
+      // Header button state
+      const previewBtnText = document.getElementById('previewBtnText');
+      const previewBtnIcon = document.getElementById('previewBtnIcon');
+      const backEditorBtn = document.getElementById('backToEditorFromPreviewBtn');
+
+      if (fromCreatorPreview) {
+        previewBtnText.textContent = 'Back to Editor';
+        previewBtnIcon.textContent = '✏️';
+        backEditorBtn.classList.remove('hidden');
+      } else {
+        document.getElementById('headerControls').classList.add('hidden');
+        backEditorBtn.classList.add('hidden');
+      }
+    }
+
+    function revealSharedNote() {
+      if (!activeSharedNoteData) return;
+
+      document.getElementById('sealedEnvelopeStage').classList.add('hidden');
+      const revealedStage = document.getElementById('revealedNoteStage');
+      revealedStage.classList.remove('hidden');
+
+      const mount = document.getElementById('recipientNoteMount');
+      mount.innerHTML = buildStickyNoteHtml(activeSharedNoteData, true);
+
+      triggerCelebrationSparkles();
+    }
+
+    function triggerCelebrationSparkles() {
+      const emojis = ['✨', '💛', '⭐', '🌸', '🎉'];
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+
+      for (let i = 0; i < 18; i++) {
+        const el = document.createElement('span');
+        el.className = 'sparkle-particle text-lg sm:text-xl select-none';
+        el.textContent = emojis[i % emojis.length];
+
+        const angle = (Math.PI * 2 * i) / 18 + (Math.random() - 0.5) * 0.4;
+        const distance = 90 + Math.random() * 140;
+        const tx = Math.cos(angle) * distance;
+        const ty = Math.sin(angle) * distance - 30;
+        const rot = (Math.random() - 0.5) * 360;
+
+        el.style.left = `${centerX}px`;
+        el.style.top = `${centerY}px`;
+        el.style.setProperty('--tx', `${tx}px`);
+        el.style.setProperty('--ty', `${ty}px`);
+        el.style.setProperty('--rot', `${rot}deg`);
+        el.style.setProperty('--dur', `${0.85 + Math.random() * 0.45}s`);
+
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 1400);
+      }
+    }
+
+    function togglePreviewReceiverMode() {
+      if (isPreviewingReceiver) {
+        switchToCreatorMode();
+      } else {
+        const snapshot = {
+          text: noteState.text,
+          sender: noteState.sender,
+          emoji: noteState.emoji,
+          style: noteState.style,
+          fastener: noteState.fastener,
+          tilt: noteState.tilt
+        };
+        enterRecipientMode(snapshot, true);
+      }
+    }
+
+    function openReceiverPreviewFromLink() {
+      const snapshot = {
+        text: noteState.text,
+        sender: noteState.sender,
+        emoji: noteState.emoji,
+        style: noteState.style,
+        fastener: noteState.fastener,
+        tilt: noteState.tilt
+      };
+      enterRecipientMode(snapshot, true);
+    }
+
+    function switchToCreatorMode(e) {
+      if (e) e.preventDefault();
+      isPreviewingReceiver = false;
+
+      // Clear URL hash cleanly without reloading
+      if (window.location.hash) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+
+      document.getElementById('recipientView').classList.add('hidden');
+      document.getElementById('creatorView').classList.remove('hidden');
+      document.getElementById('headerControls').classList.remove('hidden');
+      document.getElementById('previewBtnText').textContent = 'Preview Receiver View';
+      document.getElementById('previewBtnIcon').textContent = '👁️';
+
+      updateLivePreview();
+    }
+
+    // 6. TOAST HELPER & ROUTING INITIALIZATION
+    let toastTimer;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0', 'translate-y-6');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-6');
+      }, 2600);
+    }
+
+    function checkUrlForSharedNote() {
+      const hash = window.location.hash || '';
+      if (hash.startsWith('#note=')) {
+        const encoded = hash.slice(6);
+        const decoded = decodeNotePayload(encoded);
+        if (decoded) {
+          enterRecipientMode(decoded, false);
+          return;
+        }
+      }
+      updateLivePreview();
+    }
+
+    window.addEventListener('hashchange', checkUrlForSharedNote);
+    window.addEventListener('DOMContentLoaded', checkUrlForSharedNote);
+  </script>
+</body>
+</html>
